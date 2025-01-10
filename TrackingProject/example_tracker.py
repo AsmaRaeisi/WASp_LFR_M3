@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
         if SHOW_TRACKING:
             cv2.namedWindow("tracker")
-        tracker = NCCTracker() # TODO: Change to MOSSETracker when implemented
+        tracker = MOSSETracker() # TODO: Change to MOSSETracker when implemented
         pred_bbs = []
         for frame_idx, frame in tqdm(enumerate(a_seq), leave=False):
             image_color = frame['image']
