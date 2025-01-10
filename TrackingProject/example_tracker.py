@@ -12,20 +12,28 @@ from tqdm import tqdm
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
 
-
+# Skip sequences that crash in crop_patch in image_io.py
+CRASHING_SEQUENCES = {2, 13, 14, 22}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Args for the tracker')
-    parser.add_argument('--sequences',nargs="+",default=[3, 4, 5],type=int)
-    parser.add_argument('--dataset_path',type=str,default="Mini-OTB")
-    parser.add_argument('--show_tracking',action='store_true',default=False)
+    parser.add_argument('--sequences', nargs="+", default=[3, 4, 5], type=int)
+    parser.add_argument('--dataset_path', type=str, default="Mini-OTB")
+    parser.add_argument('--show_tracking', action='store_true', default=False)
+    parser.add_argument('--override_crashing_filter', action='store_true', default=False)
     args = parser.parse_args()
 
-    dataset_path,SHOW_TRACKING,sequences = args.dataset_path,args.show_tracking,args.sequences
+    dataset_path, SHOW_TRACKING, sequences = args.dataset_path, args.show_tracking, args.sequences
 
     dataset = OnlineTrackingBenchmark(dataset_path)
+    if sequences == [-1]:
+        sequences = list(range(len(dataset)))
+
     results = []
-    for sequence_idx in tqdm(sequences):
+    for sequence_idx in tqdm(sequences, desc="Sequences"):
+        if sequence_idx in CRASHING_SEQUENCES and not args.override_crashing_filter:
+            tqdm.write(f"Skipping sequence {sequence_idx} due to known crash")
+            continue
         a_seq = dataset[sequence_idx]
 
         if SHOW_TRACKING:
