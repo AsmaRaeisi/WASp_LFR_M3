@@ -14,7 +14,7 @@ from cvl.features_resnet import DeepFeatureExtractor
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Args for the tracker')
     parser.add_argument('--sequences',nargs="+",default=[3, 4, 5],type=int)
-    parser.add_argument('--dataset_path',type=str,default="/courses/TSBB19/otb_mini")
+    parser.add_argument('--dataset_path',type=str,default="Mini-OTB")
     args = parser.parse_args()
 
     dataset_path,sequences = args.dataset_path,args.sequences
