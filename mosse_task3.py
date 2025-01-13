@@ -135,8 +135,8 @@ class Mosse:
         # init_gt = (238, 133, 122, 165)
         init_gt = np.array(init_gt).astype(np.int64)
 
-        scale_h = init_img.shape[0] / features.shape[0]
-        scale_w = init_img.shape[1] /features.shape[1] 
+        scale_h = np.floor(init_img.shape[0] / features.shape[0])
+        scale_w = np.floor(init_img.shape[1] /features.shape[1])
         scaled_bbox = [
             int(init_gt[0] / scale_w), # Scale x
             int(init_gt[1] / scale_h), # Scale y
@@ -168,13 +168,11 @@ class Mosse:
         # start the tracking...
 
         pos = init_gt.copy()
-        stride = 32
         for idx, frame_path in enumerate(self.frame_lists):
 
             current_frame = cv2.imread(frame_path, cv2.IMREAD_UNCHANGED).astype(np.float32)
             current_features = self.backbone(current_frame)[used_resnet_layer].cpu().numpy()
             if idx == 0:
-                # clip_pos = np.array([pos[0], pos[1], pos[0] + pos[2], pos[1] + pos[3]]).astype(np.int64)
                 x_original = scaled_bbox[0]
                 y_original = scaled_bbox[1]
                 w_original = scaled_bbox[2]
@@ -223,7 +221,12 @@ class Mosse:
             # visualize the tracking process...
             ##### color visualization       
 
-            cv2.rectangle(current_frame, (pos[0], pos[1]), (pos[0]+pos[2], pos[1]+pos[3]), (255, 0, 0), 2)
+            x = int(clip_pos[0] * scale_w)
+            y = int(clip_pos[1] * scale_h)
+            x2 = int(clip_pos[2] * scale_w)
+            y2 = int(clip_pos[3] * scale_h)
+
+            cv2.rectangle(current_frame, (x, y), (x2, y2), (255, 0, 0), 2)
             # cv needs the image to be uint8 to ignore scaling
             cv2.imshow('demo', current_frame.astype(np.uint8))
             cv2.waitKey(200)
