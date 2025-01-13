@@ -219,8 +219,8 @@ class Mosse:
                     
                     fi = pre_process(cv2.resize(fi, (scaled_bbox[2], scaled_bbox[3])))
                     G = np.fft.fft2(fi)
-                    filters[channel]['A'] = self.args.lr * (G * np.conjugate(G)) + (1 - self.args.lr) * filters[channel]['A']
-                    filters[channel]['B'] = self.args.lr * (G * np.conjugate(G)) + (1 - self.args.lr) * filters[channel]['B']
+                    filters[channel]['A'] = self.args.lr * (G * np.conjugate(fi)) + (1 - self.args.lr) * filters[channel]['A']
+                    filters[channel]['B'] = self.args.lr * (fi * np.conjugate(fi)) + (1 - self.args.lr) * filters[channel]['B']
             
             # visualize the tracking process...
             ##### color visualization       
@@ -316,7 +316,7 @@ class MosseArgDict(NamedTuple):
 
 if __name__ == '__main__':
     argparser = ArgumentParser()
-    argparser.add_argument('--lr', type=float, default=0.125, help='the learning rate')
+    argparser.add_argument('--lr', type=float, default=0.001, help='the learning rate')
     argparser.add_argument('--sigma', type=float, default=100, help='the sigma')
     argparser.add_argument('--num_pretrain', type=int, default=128, help='the number of pretrain')
     argparser.add_argument('--rotate', action='store_true', help='if rotate image during pre-training.')
