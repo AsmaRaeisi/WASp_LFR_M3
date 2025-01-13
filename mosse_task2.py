@@ -102,9 +102,9 @@ class mosse:
                     fi = current_frame[clip_pos[1]:clip_pos[3], clip_pos[0]:clip_pos[2], channel]
                     
                     fi = pre_process(cv2.resize(fi, (init_gt[2], init_gt[3])))
-                    G = np.fft.fft2(fi)
-                    filters[channel]['A'] = self.args.lr * (G * np.conjugate(G)) + (1 - self.args.lr) * filters[channel]['A']
-                    filters[channel]['B'] = self.args.lr * (G * np.conjugate(G)) + (1 - self.args.lr) * filters[channel]['B']
+                    Fi = np.fft.fft2(fi)
+                    filters[channel]['A'] = self.args.lr * (G * np.conjugate(Fi)) + (1 - self.args.lr) * filters[channel]['A']
+                    filters[channel]['B'] = self.args.lr * (Fi * np.conjugate(Fi)) + (1 - self.args.lr) * filters[channel]['B']
 
             
             
