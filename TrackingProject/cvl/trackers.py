@@ -39,7 +39,9 @@ def random_warp(img):
     img_rot = img_rot.astype(np.float32) / 255
     return img_rot
 
-class MOSSETracker:
+            
+
+class MOSSETracker_Task2:
 
     def __init__(self, sigma=100, learning_rate=0.125, num_pretrain=128, rotate=False):
         self.template = None
@@ -87,7 +89,145 @@ class MOSSETracker:
         return Ai, Bi
 
     def start(self, image, region):
-        assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        num_channel = image.shape[-1]
+        
+        self.region = copy(region)
+        self.region_shape = (region.height, region.width)
+        self.region_center = (region.height // 2, region.width // 2)
+        self.G = []
+        self.Ai = []
+        self.Bi = []
+        for c in range(num_channel):
+            response_map = self._get_gauss_response(image[:, :, c])
+            g = crop_patch(response_map, region)
+            fi = crop_patch(image[:, :, c], region)
+            self.G.append(fft2(g))
+            Ai, Bi = self._pre_training(fi, self.G[-1])
+            self.Ai.append(Ai)
+            self.Bi.append(Bi)
+            
+
+    def detect(self, image):
+        num_channel = image.shape[-1]
+        
+        gi_channels = []
+        for c in range(num_channel):
+
+            Hi_current = self.Ai[c] / (self.Bi[c] + 1e-6)
+
+            # Extract region for detection
+            fi = crop_patch(image[:,:,c], self.region)
+            fi = cv2.resize(fi, (self.region.width, self.region.height))
+            fi = pre_process(fi)
+            
+            Gi_current = Hi_current * fft2(fi)
+
+
+            gi_current = ifft2(Gi_current).real
+            gi_current = np.nan_to_num(gi_current, nan=0.0, posinf=0.0, neginf=0.0)
+
+            if np.all(gi_current == 0):
+                #print(f"Channel {c} produced all zero values. Skipping region update.")
+                return self.get_region()
+        
+            gi_channels.append(gi_current)
+
+
+        gi_combined = sum(gi_channels) / num_channel
+        
+        #print(gi_combined)
+        # Find max response
+        max_pos = np.where(gi_combined == np.max(gi_combined))
+        dy = int(np.mean(max_pos[0]) - gi_combined.shape[0] / 2)
+        dx = int(np.mean(max_pos[1]) - gi_combined.shape[1] / 2)
+        
+        self.region.xpos += dx
+        self.region.ypos += dy
+        
+        return self.get_region()
+
+
+    def update(self, image):
+        # Online update of the filters
+        num_channel = image.shape[-1]
+        region = self.region
+        lr = self.learning_rate
+
+        for c in range(num_channel):
+            fi = crop_patch(image[:,:,c], region)
+            fi = cv2.resize(fi, (region.width, region.height))
+            fi = pre_process(fi)
+            Fi = fft2(fi)
+               
+            #print("self.G[c]", self.G[c].shape)
+            #print("fi", Fi.shape)  
+            self.Ai[c] = lr * (self.G[c] * np.conjugate(Fi)) + (1 - lr) * self.Ai[c]
+            self.Bi[c] = lr * (Fi * np.conjugate(Fi)) + (1 - lr) * self.Bi[c]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOSSETracker_Task1:
+
+    def __init__(self, sigma=100, learning_rate=0.125, num_pretrain=128, rotate=False):
+        self.template = None
+        self.last_response = None
+        self.region = None
+        self.region_shape = None
+        self.region_center = None
+        self.learning_rate = learning_rate
+        self.sigma = sigma
+        self.num_pretrain = num_pretrain
+        self.rotate = rotate
+        # Variables for MOSSE filter training
+        self.Ai = None
+        self.Bi = None
+        self.G = None
+
+    def get_region(self):
+        return copy(self.region)
+
+    def _get_gauss_response(self, image):
+        height, width = image.shape
+        xx, yy = np.meshgrid(np.arange(width), np.arange(height))
+        center_x = self.region.xpos + self.region_center[1]
+        center_y = self.region.ypos + self.region_center[0]
+        dist = (np.square(xx - center_x) + np.square(yy - center_y)) / (2 * self.sigma)
+        response = np.exp(-dist)
+        return response / np.sum(response)
+
+    def _pre_training(self, init_frame, G):
+        h, w = G.shape
+        fi = cv2.resize(init_frame, (w, h))
+        fi = pre_process(fi)
+        Ai = G * np.conjugate(fft2(fi))
+        Bi = fft2(fi) * np.conjugate(fft2(fi))
+        for _ in range(self.num_pretrain):
+            if self.rotate:
+                fi_warp = random_warp(init_frame)
+            else:
+                fi_warp = init_frame
+            fi_warp = cv2.resize(fi_warp, (w, h))
+            fi_warp = pre_process(fi_warp)
+            Fi = fft2(fi_warp)
+            Ai += G * np.conjugate(Fi)
+            Bi += Fi * np.conjugate(Fi)
+        return Ai, Bi
+
+    def start(self, image, region):
+        #assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        image = np.sum(image, 2) / 3
         self.region = copy(region)
         self.region_shape = (region.height, region.width)
         self.region_center = (region.height // 2, region.width // 2)
@@ -100,7 +240,9 @@ class MOSSETracker:
         self.Ai, self.Bi = self._pre_training(fi, self.G)
 
     def detect(self, image):
-        assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        #assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        image = np.sum(image, 2) / 3
+
         Hi = self.Ai / (self.Bi + 1e-6)
         # Extract region for detection
         fi = crop_patch(image, self.region)
@@ -117,7 +259,9 @@ class MOSSETracker:
         return self.get_region()
 
     def update(self, image):
-        assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        #assert len(image.shape) == 2, "MOSSE is only defined for grayscale images"
+        image = np.sum(image, 2) / 3
+
         # Online update of the filters
         region = self.region
         fi = crop_patch(image, self.region)
