@@ -8,6 +8,7 @@ from utils import pre_process, random_warp
 from torchvision.models import ResNet18_Weights, ResNet34_Weights, ResNet50_Weights, ResNet101_Weights, resnet
 from torch import nn
 import torch
+from argparse import ArgumentParser
 
 """
 This module implements the basic correlation filter based tracking algorithm -- MOSSE
@@ -18,31 +19,34 @@ Date: 2018-05-28
 
 RESNET_TYPE = Literal["ResNet18_Weights", "ResNet34_Weights",
                       "ResNet50_Weights", "ResNet101_Weights"]
+# Simply used for the argparser to automatice the options
+RESNET_IMPLEMENTED_ARCHITECTURES=["ResNet18_Weights", "ResNet34_Weights",
+                      "ResNet50_Weights", "ResNet101_Weights"]
 
 class ResNetFeatureExtractor(nn.Module):
 
     def __init__(self, pretrained: bool = False,
-                 resnet_version: RESNET_TYPE = "ResNet34_Weights") -> None:
+                 resnet_architecture: RESNET_TYPE = "ResNet34_Weights") -> None:
         super().__init__()
 
 
-        if resnet_version == "ResNet18_Weights":
+        if resnet_architecture == "ResNet18_Weights":
             selected_meta = ResNet18_Weights
             selected_class = resnet.resnet18
 
-        elif resnet_version == "ResNet34_Weights":
+        elif resnet_architecture == "ResNet34_Weights":
             selected_meta = ResNet34_Weights
             selected_class = resnet.resnet34
 
-        elif resnet_version == "ResNet50_Weights":
+        elif resnet_architecture == "ResNet50_Weights":
             selected_meta = ResNet50_Weights
             selected_class = resnet.resnet50
 
-        elif resnet_version == "ResNet101_Weights":
+        elif resnet_architecture == "ResNet101_Weights":
             selected_meta = ResNet101_Weights
             selected_class = resnet.resnet101
         else:
-            raise Exception(f'{resnet_version} is not implemented yet.')
+            raise Exception(f'{resnet_architecture} is not implemented yet.')
 
         weights = selected_meta.DEFAULT if pretrained else None
 
@@ -117,7 +121,7 @@ class Mosse:
         self.backbone = backbone
     
     # start to do the object tracking...
-    def start_tracking(self, used_resnet_layer: int = 2):
+    def start_tracking(self, use_resnet_layer: int = 2):
         
         # get the image of the first frame... 
        
@@ -125,7 +129,7 @@ class Mosse:
         # init_img = Image.open(self.frame_lists[0])
         init_img = init_img.astype(np.float32)
 
-        features = self.backbone(init_img)[used_resnet_layer].cpu().numpy()
+        features = self.backbone(init_img)[use_resnet_layer].cpu().numpy()
 
         num_channels = features.shape[2]  # Get the number of channels
 
@@ -171,7 +175,7 @@ class Mosse:
         for idx, frame_path in enumerate(self.frame_lists):
 
             current_frame = cv2.imread(frame_path, cv2.IMREAD_UNCHANGED).astype(np.float32)
-            current_features = self.backbone(current_frame)[used_resnet_layer].cpu().numpy()
+            current_features = self.backbone(current_frame)[use_resnet_layer].cpu().numpy()
             if idx == 0:
                 x_original = scaled_bbox[0]
                 y_original = scaled_bbox[1]
@@ -311,18 +315,34 @@ class MosseArgDict(NamedTuple):
     record: bool
 
 if __name__ == '__main__':
-    backbone = ResNetFeatureExtractor(pretrained=True)
+    argparser = ArgumentParser()
+    argparser.add_argument('--lr', type=float, default=0.125, help='the learning rate')
+    argparser.add_argument('--sigma', type=float, default=100, help='the sigma')
+    argparser.add_argument('--num_pretrain', type=int, default=128, help='the number of pretrain')
+    argparser.add_argument('--rotate', action='store_true', help='if rotate image during pre-training.')
+    argparser.add_argument('--record', action='store_true', help='record the frames')
+    argparser.add_argument('--dataset_path', type=str, required=True, help='Path to the dataset folder containing an "img" subfolder')
+
+    argparser.add_argument('--resnet_use_layer', type=int, default=2, help='Which layer (0-3) from Resnet shall be used')
+    argparser.add_argument('--use_untrained_resnet', action='store_true', help='Whether it will not use pretrained layers')
+    argparser.add_argument('--resnet_architecture', type=str, default="ResNet50_Weights", help=f'Chose established architecture: {RESNET_IMPLEMENTED_ARCHITECTURES}')
+
+    args = argparser.parse_args()
+
+    backbone = ResNetFeatureExtractor(pretrained=not args.use_untrained_resnet,
+                                      resnet_architecture=args.resnet_architecture
+                                     )
+
     mosse_args = MosseArgDict(
-        lr=0.125,
-        # lr=0.250,
-        sigma=100.0,
-        num_pretrain=128,
-        rotate=False,
-        record=False,
+        lr=args.lr,
+        sigma=args.sigma,
+        num_pretrain=args.num_pretrain,
+        rotate=args.rotate,
+        record=args.record,
     )
 
-    img_path = './TrackingProject/Mini-OTB/Surfer/img/'
+    img_path = os.path.join(args.dataset_path, 'img/')
     mosse = Mosse(args=mosse_args,
                   img_path=img_path,
                   backbone=backbone)
-    mosse.start_tracking(used_resnet_layer=1)
+    mosse.start_tracking(use_resnet_layer=args.resnet_use_layer)
