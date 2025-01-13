@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker, MOSSETracker
+from cvl.trackers import NCCTracker, MOSSETracker_Task1, MOSSETracker_Task2
 
 # Skip sequences that crash in crop_patch in image_io.py
 CRASHING_SEQUENCES = {2, 13, 14, 22}
@@ -38,11 +38,13 @@ if __name__ == "__main__":
 
         if SHOW_TRACKING:
             cv2.namedWindow("tracker")
-        tracker = MOSSETracker() # TODO: Change to MOSSETracker when implemented
+        #tracker = MOSSETracker_Task1() #use this one for task1
+        tracker = MOSSETracker_Task2() #use this one for task2
+        
         pred_bbs = []
         for frame_idx, frame in tqdm(enumerate(a_seq), leave=False):
             image_color = frame['image']
-            image = np.sum(image_color, 2) / 3
+            #image = np.sum(image_color, 2) / 3
             if frame_idx == 0:
                 bbox = frame['bounding_box']
                 if bbox.width % 2 == 0:
@@ -52,12 +54,13 @@ if __name__ == "__main__":
                     bbox.height += 1
 
                 current_position = bbox
-                tracker.start(image, bbox)
+                tracker.start(image_color, bbox)
                 frame['bounding_box']
             else:
-                tracker.detect(image)
-                tracker.update(image)
+                tracker.detect(image_color)
+                tracker.update(image_color)
             pred_bbs.append(tracker.get_region())
+            
             if SHOW_TRACKING:
                 bbox = tracker.get_region()
                 pt0 = (bbox.xpos, bbox.ypos)
@@ -66,6 +69,7 @@ if __name__ == "__main__":
                 cv2.rectangle(image_color, pt0, pt1, color=(0, 255, 0), thickness=3)
                 cv2.imshow("tracker", image_color)
                 cv2.waitKey(0)
+                
         sequence_ious = dataset.calculate_per_frame_iou(sequence_idx, pred_bbs)
         results.append(sequence_ious)
     overlap_thresholds, success_rate = dataset.success_rate(results)
