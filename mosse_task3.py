@@ -311,9 +311,10 @@ class MosseArgDict(NamedTuple):
     record: bool
 
 if __name__ == '__main__':
-    backbone = ResNetFeatureExtractor()
+    backbone = ResNetFeatureExtractor(pretrained=True)
     mosse_args = MosseArgDict(
         lr=0.125,
+        # lr=0.250,
         sigma=100.0,
         num_pretrain=128,
         rotate=False,
@@ -321,5 +322,7 @@ if __name__ == '__main__':
     )
 
     img_path = './TrackingProject/Mini-OTB/Surfer/img/'
-    mosse = Mosse(args=mosse_args, img_path=img_path, backbone=backbone)
-    mosse.start_tracking()
+    mosse = Mosse(args=mosse_args,
+                  img_path=img_path,
+                  backbone=backbone)
+    mosse.start_tracking(used_resnet_layer=1)
