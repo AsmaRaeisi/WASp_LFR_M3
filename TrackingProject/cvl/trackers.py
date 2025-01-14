@@ -168,7 +168,7 @@ class MOSSETracker_Task3(MOSSETracker_Task2):
                  num_pretrain=128,
                  rotate=False,
                  backbone: DeepFeatureExtractor = DeepFeatureExtractor(network_type='resnet101'),
-                 used_resnet_layer: int = 2
+                 used_resnet_layer: int = 0
                 ):
         super().__init__(
             sigma=100,
