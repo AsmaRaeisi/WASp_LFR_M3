@@ -121,17 +121,8 @@ class MOSSETracker_Task2:
             fi = pre_process(fi)
             
             Gi_current = Hi_current * fft2(fi)
-
-
             gi_current = ifft2(Gi_current).real
-            gi_current = np.nan_to_num(gi_current, nan=0.0, posinf=0.0, neginf=0.0)
-
-            if np.all(gi_current == 0):
-                #print(f"Channel {c} produced all zero values. Skipping region update.")
-                return self.get_region()
-        
             gi_channels.append(gi_current)
-
 
         gi_combined = sum(gi_channels) / num_channel
         

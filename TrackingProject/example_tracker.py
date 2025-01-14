@@ -44,6 +44,7 @@ if __name__ == "__main__":
         pred_bbs = []
         for frame_idx, frame in tqdm(enumerate(a_seq), leave=False):
             image_color = frame['image']
+            image_color = (image_color / 255).astype(np.float32)
             #image = np.sum(image_color, 2) / 3
             if frame_idx == 0:
                 bbox = frame['bounding_box']
