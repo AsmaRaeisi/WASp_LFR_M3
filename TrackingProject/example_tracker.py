@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 from cvl.dataset import OnlineTrackingBenchmark
-from cvl.trackers import NCCTracker, MOSSETracker_Task1, MOSSETracker_Task2
+from cvl.trackers import NCCTracker, MOSSETracker_Task1, MOSSETracker_Task2, MOSSETracker_Task3
 
 # Skip sequences that crash in crop_patch in image_io.py
 CRASHING_SEQUENCES = {2, 13, 14, 22}
@@ -38,8 +38,11 @@ if __name__ == "__main__":
 
         if SHOW_TRACKING:
             cv2.namedWindow("tracker")
+        #tracker = NCCTracker() #use this one for baseline
         #tracker = MOSSETracker_Task1() #use this one for task1
-        tracker = MOSSETracker_Task2() #use this one for task2
+        #tracker = MOSSETracker_Task2() #use this one for task2
+        tracker = MOSSETracker_Task3() #use this one for task3
+        
         
         pred_bbs = []
         for frame_idx, frame in tqdm(enumerate(a_seq), leave=False):
