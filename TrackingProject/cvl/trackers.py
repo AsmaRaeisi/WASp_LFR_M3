@@ -3,6 +3,7 @@ from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from .image_io import crop_patch
 from copy import copy
 import cv2
+from .features_resnet import DeepFeatureExtractor
 
 # used for linear mapping...
 def linear_mapping(img):
@@ -158,6 +159,59 @@ class MOSSETracker_Task2:
 
 
 
+
+class MOSSETracker_Task3(MOSSETracker_Task2):
+
+    def __init__(self,
+                 sigma=100,
+                 learning_rate=0.125,
+                 num_pretrain=128,
+                 rotate=False,
+                 backbone: DeepFeatureExtractor = DeepFeatureExtractor(network_type='resnet101'),
+                 used_resnet_layer: int = 2
+                ):
+        super().__init__(
+            sigma=100,
+            learning_rate=0.125,
+            num_pretrain=128,
+            rotate=False,
+        )
+        self.__backbone = backbone
+        self._used_resnet_layer = used_resnet_layer
+        self.scaling_height = None
+        self.scaling_width = None
+
+    def compute_deepfeatures(self, image):
+        features = self.__backbone(image)[self._used_resnet_layer][0].transpose(0,2).transpose(0,1)
+        return features.cpu().numpy()
+
+    def get_region(self):
+        scaled_region = copy(self.region)
+
+        scaled_region.height = int(scaled_region.height * self.scaling_height)
+        scaled_region.width = int(scaled_region.width * self.scaling_width)
+        scaled_region.xpos = int(scaled_region.xpos * self.scaling_width)
+        scaled_region.ypos = int(scaled_region.ypos * self.scaling_height)
+
+        return scaled_region
+
+
+    def start(self, image, region):
+        features = self.compute_deepfeatures(image)
+        self.scaling_height = image.shape[0] / features.shape[0]
+        self.scaling_width = image.shape[1] / features.shape[1]
+
+        scaled_region = copy(region)
+        scaled_region.height = int(region.height / self.scaling_height)
+        scaled_region.width = int(region.width / self.scaling_width)
+        scaled_region.xpos = int(region.xpos / self.scaling_width)
+        scaled_region.ypos = int(region.ypos / self.scaling_height)
+
+        return super().start(features, scaled_region)
+
+        
+    def detect(self, image):
+        return super().detect(self.compute_deepfeatures(image))
 
 
 
