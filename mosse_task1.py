@@ -18,6 +18,7 @@ class mosse:
         # get the img lists...
         self.frame_lists = self._get_img_lists(self.img_path)
         self.frame_lists.sort()
+        self.ground_truths = self._load_ground_truths()
     
     # start to do the object tracking...
     def start_tracking(self):
@@ -42,6 +43,10 @@ class mosse:
             current_frame = cv2.imread(self.frame_lists[idx])
             frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
             frame_gray = frame_gray.astype(np.float32)
+            
+            current_gt = self.ground_truths[idx]
+            current_gt = np.array(current_gt).astype(np.int64)            
+            
             if idx == 0:
                 Ai = self.args.lr * Ai
                 Bi = self.args.lr * Bi
@@ -85,6 +90,10 @@ class mosse:
             frame_display = cv2.cvtColor(frame_gray, cv2.COLOR_GRAY2BGR)
 
             cv2.rectangle(frame_display, (pos[0], pos[1]), (pos[0]+pos[2], pos[1]+pos[3]), (255, 0, 0), 2)
+            
+            # Draw the ground truth rectangle (green)
+            cv2.rectangle(frame_display, (current_gt[0], current_gt[1]), (current_gt[0]+current_gt[2], current_gt[1]+current_gt[3]), (0, 255, 0), 2)            
+            
             cv2.imshow('demo', frame_display)
             cv2.waitKey(100)
             # if record... save the frames..
@@ -151,13 +160,11 @@ class mosse:
                 frame_list.append(os.path.join(img_path, frame)) 
         return frame_list
     
-    # it will get the first ground truth of the video..
-    def _get_init_ground_truth(self, img_path):
-        gt_path = os.path.join(img_path, 'groundtruth.txt')
+    def _load_ground_truths(self):
+        gt_path = os.path.join(self.img_path, '../groundtruth.txt')
+        ground_truths = []
         with open(gt_path, 'r') as f:
-            # just read the first frame...
-            line = f.readline()
-            gt_pos = line.split(',')
-
-        return [float(element) for element in gt_pos]
-
+            for line in f:
+                parts = line.strip().split('\t')
+                ground_truths.append([int(float(p)) for p in parts])
+        return ground_truths

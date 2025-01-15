@@ -119,6 +119,7 @@ class Mosse:
         self.frame_lists = self._get_img_lists(self.img_path)
         self.frame_lists.sort()
         self.backbone = backbone
+        self.ground_truths = self._load_ground_truths()
     
     # start to do the object tracking...
     def start_tracking(self, use_resnet_layer: int = 2):
@@ -175,6 +176,10 @@ class Mosse:
         for idx, frame_path in enumerate(self.frame_lists):
 
             current_frame = cv2.imread(frame_path, cv2.IMREAD_UNCHANGED).astype(np.float32)
+            
+            current_gt = self.ground_truths[idx]
+            current_gt = np.array(current_gt).astype(np.int64)            
+            
             current_features = self.backbone(current_frame)[use_resnet_layer].cpu().numpy()
             if idx == 0:
                 x_original = scaled_bbox[0]
@@ -232,6 +237,11 @@ class Mosse:
 
             cv2.rectangle(current_frame, (x, y), (x2, y2), (255, 0, 0), 2)
             # cv needs the image to be uint8 to ignore scaling
+            
+            # Draw the ground truth rectangle (green)
+            cv2.rectangle(current_frame, (current_gt[0], current_gt[1]), (current_gt[0]+current_gt[2], current_gt[1]+current_gt[3]), (0, 255, 0), 2)                        
+            
+            
             cv2.imshow('demo', current_frame.astype(np.uint8))
             cv2.waitKey(200)
             # if record... save the frames..
@@ -290,15 +300,14 @@ class Mosse:
                 frame_list.append(os.path.join(img_path, frame)) 
         return frame_list
     
-    # it will get the first ground truth of the video..
-    def _get_init_ground_truth(self, img_path):
-        gt_path = os.path.join(img_path, 'groundtruth.txt')
+    def _load_ground_truths(self):
+        gt_path = os.path.join(self.img_path, '../groundtruth.txt')
+        ground_truths = []
         with open(gt_path, 'r') as f:
-            # just read the first frame...
-            line = f.readline()
-            gt_pos = line.split(',')
-
-        return [float(element) for element in gt_pos]
+            for line in f:
+                parts = line.strip().split('\t')
+                ground_truths.append([int(float(p)) for p in parts])
+        return ground_truths
 
 # class MosseArgDict(TypedDict):
 #     lr: float
