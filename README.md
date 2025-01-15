@@ -12,6 +12,9 @@ datasets/
     biker/img/0001.jpg ...
     ...
 
+The ground truth should be located in Basketball/ (or any other dataset folder) and named groundtruth.txt
+
+
 
 
 
@@ -22,6 +25,10 @@ replace demo and mosse.py with the one I shared here.
 
 **run the below command:**
 python demo.py --dataset_path "datasets/Basketball" --record 
+
+**for Resnet:**
+python mosse_task3.py --dataset_path "datasets/Basketball" --record 
+
 
 then select a bounding box on the image and press the space
 it will store the frames in a folder named record_frames
