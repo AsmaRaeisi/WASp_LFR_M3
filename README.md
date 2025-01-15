@@ -12,7 +12,7 @@ datasets/
     biker/img/0001.jpg ...
     ...
 
-The ground truth should be located in Basketball/ (or any other dataset folder) and named groundtruth.txt
+The ground truth should be located in `Basketball/` (or any other dataset folder) and named `groundtruth.txt`.
 
 
 
