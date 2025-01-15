@@ -109,11 +109,6 @@ class mosse:
             self.total_iou += self._calculate_iou(pos, current_gt)
             self.total_precision += self._calculate_precision(pos, current_gt)
 
-        avg_iou = self.total_iou / self.num_frames
-        avg_precision = self.total_precision / self.num_frames
-        print(f'Average IOU: {avg_iou:.4f}')
-        print(f'Average Precision: {avg_precision:.4f}')
-
             ##### color visualization       
             """             cv2.rectangle(current_frame, (pos[0], pos[1]), (pos[0]+pos[2], pos[1]+pos[3]), (255, 0, 0), 2)
                         cv2.imshow('demo', current_frame)
@@ -124,7 +119,11 @@ class mosse:
                             if not os.path.exists(frame_path):
                                 os.makedirs(frame_path)
                             cv2.imwrite(frame_path + str(idx).zfill(5) + '.png', current_frame) """
-                
+
+        avg_iou = self.total_iou / self.num_frames
+        avg_precision = self.total_precision / self.num_frames
+        print(f'Average IOU: {avg_iou:.4f}')
+        print(f'Average Precision: {avg_precision:.4f}')
                 
     # pre train the filter on the first frame...
     def _pre_training(self, init_frame, G):
@@ -193,4 +192,4 @@ class mosse:
         pred_center = [pred[0] + pred[2] / 2, pred[1] + pred[3] / 2]
         gt_center = [gt[0] + gt[2] / 2, gt[1] + gt[3] / 2]
         distance = np.sqrt((pred_center[0] - gt_center[0]) ** 2 + (pred_center[1] - gt_center[1]) ** 2)
-        return 1 if distance <= max(gt[2], gt[3]) * 0.5 else 0        
+        return 1 if distance <= max(gt[2], gt[3]) * 0.5 else 0
